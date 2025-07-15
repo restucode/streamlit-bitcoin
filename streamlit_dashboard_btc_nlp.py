@@ -68,7 +68,15 @@ def main():
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("**Distribusi Label:**")
-            st.dataframe(pd.Series(y).value_counts().rename(index=label_names).to_frame('jumlah_data'))
+            vc = pd.Series(y).value_counts()
+            vc.index = vc.index.map(label_names)
+            df_vc = vc.to_frame('jumlah_data')
+
+            # Tambahkan baris total
+            total = pd.DataFrame({'jumlah_data': [df_vc['jumlah_data'].sum()]}, index=['Total'])
+            df_vc_total = pd.concat([df_vc, total])
+
+            st.dataframe(df_vc_total)
             st.markdown("**Distribusi Split Train/Uji:**")
             st.write(
                 f"Train: {len(X_train)},  Test: {len(X_test)},  Rasio: {len(X_train)/len(X):.2f}:{len(X_test)/len(X):.2f}"
