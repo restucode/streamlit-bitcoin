@@ -180,7 +180,6 @@ def main():
     with tab4:
         st.header("Evaluasi Model pada Data Uji (Test Set)")
         st.info("Menggunakan parameter terbaik: RF (n_estimators=200, max_depth=10, min_samples_split=2), XGB (n_estimators=200, max_depth=3, learning_rate=0.1)")
-        # --- Train/Cache Model (untuk demo, cache di RAM saja)
         @st.cache_resource
         def train_rf():
             rf = Pipeline([
@@ -198,33 +197,49 @@ def main():
         rf_pipeline = train_rf()
         xgb_pipeline = train_xgb()
 
+        # MODIFIKASI DI BAWAH INI
         def eval_model(model, mdlname):
             y_pred = model.predict(X_test)
             acc = accuracy_score(y_test, y_pred)
-            prec = precision_score(y_test, y_pred, zero_division=0)
-            rec = recall_score(y_test, y_pred, zero_division=0)
-            f1 = f1_score(y_test, y_pred, zero_division=0)
+            prec_pos = precision_score(y_test, y_pred, pos_label=1, zero_division=0)
+            rec_pos  = recall_score(y_test, y_pred, pos_label=1, zero_division=0)
+            f1_pos   = f1_score(y_test, y_pred, pos_label=1, zero_division=0)
+            prec_neg = precision_score(y_test, y_pred, pos_label=0, zero_division=0)
+            rec_neg  = recall_score(y_test, y_pred, pos_label=0, zero_division=0)
+            f1_neg   = f1_score(y_test, y_pred, pos_label=0, zero_division=0)
             with st.expander(f"Confusion Matrix & Report ({mdlname})", expanded=True):
-                st.text(classification_report(y_test, y_pred, target_names=["Negatif","Positif"], zero_division=0))
+                st.text(classification_report(
+                    y_test, y_pred,
+                    target_names=["Negatif","Positif"],
+                    zero_division=0))
                 fig, ax = plt.subplots()
-                ConfusionMatrixDisplay.from_estimator(model, X_test, y_test, display_labels=["Negatif","Positif"], ax=ax)
+                ConfusionMatrixDisplay.from_estimator(
+                    model, X_test, y_test,
+                    display_labels=["Negatif","Positif"], ax=ax)
                 st.pyplot(fig)
-            return acc, prec, rec, f1, y_pred
+            return acc, prec_pos, rec_pos, f1_pos, prec_neg, rec_neg, f1_neg, y_pred
+
         colA, colB = st.columns(2)
         with colA:
             st.subheader("Random Forest")
-            rf_acc, rf_prec, rf_rec, rf_f1, rf_pred = eval_model(rf_pipeline, "RandomForest")
+            rf_acc, rf_prec_pos, rf_rec_pos, rf_f1_pos, rf_prec_neg, rf_rec_neg, rf_f1_neg, rf_pred = eval_model(rf_pipeline, "RandomForest")
         with colB:
             st.subheader("XGBoost")
-            xgb_acc, xgb_prec, xgb_rec, xgb_f1, xgb_pred = eval_model(xgb_pipeline, "XGBoost")
+            xgb_acc, xgb_prec_pos, xgb_rec_pos, xgb_f1_pos, xgb_prec_neg, xgb_rec_neg, xgb_f1_neg, xgb_pred = eval_model(xgb_pipeline, "XGBoost")
         st.markdown("---")
+
+        # Tambahkan kolom akurasi, presisi, recall, f1 untuk positif maupun negatif
         report = pd.DataFrame({
-            "Akurasi": [rf_acc, xgb_acc],
-            "Presisi": [rf_prec, xgb_prec],
-            "Recall":  [rf_rec, xgb_rec],
-            "F1 Score": [rf_f1, xgb_f1]
+            "Akurasi":       [rf_acc, xgb_acc],
+            "Presisi (+)":   [rf_prec_pos, xgb_prec_pos],
+            "Recall (+)":    [rf_rec_pos, xgb_rec_pos],
+            "F1 (+)":        [rf_f1_pos, xgb_f1_pos],
+            "Presisi (-)":   [rf_prec_neg, xgb_prec_neg],
+            "Recall (-)":    [rf_rec_neg, xgb_rec_neg],
+            "F1 (-)":        [rf_f1_neg, xgb_f1_neg],
         }, index=["Random Forest", "XGBoost"])
-        st.write("**Metrik Performa di Test Set**")
+
+        st.write("**Metrik Performa di Test Set (Per Sentimen)**")
         st.dataframe(report.round(4))
         
         # Buat DataFrame hasil uji: label, prediksi, teks (atau fitur lain), dan status (TP, TN, FP, FN)
