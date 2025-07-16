@@ -150,33 +150,56 @@ def main():
         if text_col in result_df.columns:
             pos_texts = result_df[result_df['label']==1][text_col].astype(str).dropna()
             neg_texts = result_df[result_df['label']==0][text_col].astype(str).dropna()
-            # POSITIF
-            cv = CountVectorizer(stop_words='english')
-            pos_corpus = " ".join(pos_texts.tolist()).lower().translate(str.maketrans('', '', string.punctuation))
-            X_pos = cv.fit_transform([pos_corpus])
-            pos_word_freq = dict(zip(cv.get_feature_names_out(), X_pos.toarray()[0]))
-            pos_common = Counter(pos_word_freq).most_common(10)
-            fig1, ax1 = plt.subplots(figsize=(6,3))
-            sns.barplot(x=[x[1] for x in pos_common], y=[x[0] for x in pos_common], ax=ax1, palette="crest")
-            st.subheader(":green[Positif]")
-            st.pyplot(fig1)
-            wc = WordCloud(width=400, height=250, background_color="white").generate(pos_corpus)
-            st.image(wc.to_array(), use_container_width=True)
-            # NEGATIF
-            cv = CountVectorizer(stop_words='english')
-            neg_corpus = " ".join(neg_texts.tolist()).lower().translate(str.maketrans('', '', string.punctuation))
-            X_neg = cv.fit_transform([neg_corpus])
-            neg_word_freq = dict(zip(cv.get_feature_names_out(), X_neg.toarray()[0]))
-            neg_common = Counter(neg_word_freq).most_common(10)
-            fig2, ax2 = plt.subplots(figsize=(6,3))
-            sns.barplot(x=[x[1] for x in neg_common], y=[x[0] for x in neg_common], ax=ax2, palette="rocket")
-            st.subheader(":red[Negatif]")
-            st.pyplot(fig2)
-            wc2 = WordCloud(width=400, height=250, background_color="black", colormap="Reds").generate(neg_corpus)
-            st.image(wc2.to_array(), use_container_width=True)
+
+            # Siapkan dua kolom: Kiri = Positif, Kanan = Negatif
+            col1, col2 = st.columns(2)
+
+            # ==================== POSITIF =====================
+            with col1:
+                st.subheader(":green[Positif]")
+                cv = CountVectorizer(stop_words='english')
+                pos_corpus = " ".join(pos_texts.tolist()).lower().translate(str.maketrans('', '', string.punctuation))
+                X_pos = cv.fit_transform([pos_corpus])
+                pos_word_freq = dict(zip(cv.get_feature_names_out(), X_pos.toarray()[0]))
+                pos_common = Counter(pos_word_freq).most_common(10)
+                fig1, ax1 = plt.subplots(figsize=(5,3))  # Lebar menyesuaikan
+                sns.barplot(x=[x[1] for x in pos_common], y=[x[0] for x in pos_common], ax=ax1, palette="crest")
+                st.pyplot(fig1, use_container_width=True)
+                # WordCloud dengan parameter max_words agar lebih jelas, dan ukuran menyesuaikan kolom
+                wc = WordCloud(
+                    width=350, height=250,
+                    background_color="white",
+                    max_words=30,
+                    min_font_size=12,          # untuk keterbacaan
+                    colormap="crest",
+                    prefer_horizontal=0.9
+                ).generate(pos_corpus)
+                st.image(wc.to_array(), use_container_width=True)
+
+            # ==================== NEGATIF =====================
+            with col2:
+                st.subheader(":red[Negatif]")
+                cv = CountVectorizer(stop_words='english')
+                neg_corpus = " ".join(neg_texts.tolist()).lower().translate(str.maketrans('', '', string.punctuation))
+                X_neg = cv.fit_transform([neg_corpus])
+                neg_word_freq = dict(zip(cv.get_feature_names_out(), X_neg.toarray()[0]))
+                neg_common = Counter(neg_word_freq).most_common(10)
+                fig2, ax2 = plt.subplots(figsize=(5,3))  # Lebar menyesuaikan
+                sns.barplot(x=[x[1] for x in neg_common], y=[x[0] for x in neg_common], ax=ax2, palette="rocket")
+                st.pyplot(fig2, use_container_width=True)
+                wc2 = WordCloud(
+                    width=350, height=250,
+                    background_color="black",
+                    max_words=30,
+                    min_font_size=12,        # untuk keterbacaan
+                    colormap="Reds",
+                    prefer_horizontal=0.9
+                ).generate(neg_corpus)
+                st.image(wc2.to_array(), use_container_width=True)
+
         else:
             st.warning("Kolom 'teks' tidak tersedia untuk visualisasi kata.")
-    # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
     with tab4:
         st.header("Evaluasi Model pada Data Uji (Test Set)")
         st.info("Menggunakan parameter terbaik: RF (n_estimators=200, max_depth=10, min_samples_split=2), XGB (n_estimators=200, max_depth=3, learning_rate=0.1)")
