@@ -58,9 +58,9 @@ def main():
     smote = SMOTE(random_state=42)
     X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
     
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "Distribusi Data", "Sentimen per Tahun", "Kata Populer & Wordcloud",
-        "Evaluasi Uji", "Performa Data Latih", "Performa Data Uji", "Margin Error CV"
+        "Evaluasi Uji", "Performa Data Latih", "Performa Data Uji"
     ])
     # ----------------------------------------------------------------------
     with tab1:
@@ -220,7 +220,6 @@ def main():
         rf_pipeline = train_rf()
         xgb_pipeline = train_xgb()
 
-        # MODIFIKASI DI BAWAH INI
         def eval_model(model, mdlname):
             y_pred = model.predict(X_test)
             acc = accuracy_score(y_test, y_pred)
@@ -280,7 +279,7 @@ def main():
             result['Pred_Type'] = np.select(condlist, choicelist, default='Other')
             return result
 
-        # DataFrame test sudah didefinisikan sebagai `test_df` (lihat tab1 kode kamu)
+        # DataFrame test sudah didefinisikan sebagai `test_df`
         # Filter test_df agar urutannya sama dengan y_test
 
         def append_total_row(df):
@@ -432,67 +431,6 @@ def main():
         st.pyplot(fig)
 
     # ----------------------------------------------------------------------
-    def load_std_result(filename):
-        data = np.load(filename)
-        return data['train'], data['test']
-    with tab7:
-        st.header("Margin Error (Std Deviasi via 10-fold CV)")
-        st.info("Margin error di-load dari file .npz hasil crossval sebelumnya, sehingga jauh lebih cepat!")
-
-        # Path file hasil crossval/cv margin
-        # -- Ubah path jika letak file berbeda pada server/drive kamu
-        FOLDER = "./"  # gunakan folder model margin error kamu
-        fnames = {
-            'rf_std': os.path.join(FOLDER, "rf_std.npz"),
-            'rf_smote_std': os.path.join(FOLDER, "rf_smote_std.npz"),
-            'xgb_std': os.path.join(FOLDER, "xgb_std.npz"),
-            'xgb_smote_std': os.path.join(FOLDER, "xgb_smote_std.npz"),
-        }
-        names = [
-            ("Random Forest\nSebelum SMOTE", 'rf_std'),
-            ("Random Forest\nSesudah SMOTE", 'rf_smote_std'),
-            ("XGBoost\nSebelum SMOTE", 'xgb_std'),
-            ("XGBoost\nSesudah SMOTE", 'xgb_smote_std'),
-        ]
-        metric_names = ['Akurasi', 'Presisi', 'Recall', 'F1-score']
-        result_dict = {}
-        for name, k in names:
-            if os.path.exists(fnames[k]):
-                std_train, std_test = load_std_result(fnames[k])
-                result_dict[name] = (std_train, std_test)
-            else:
-                st.error(f"Hasil margin error model \"{name}\" ({fnames[k]}) tidak ditemukan!")
-                result_dict[name] = ([np.nan]*4, [np.nan]*4)
-
-        # Plot
-        bar_width = 0.2
-        index = np.arange(len(metric_names))
-        fig, ax = plt.subplots(1,2,figsize=(16,5))
-        for i, (name, (std_train, std_test)) in enumerate(result_dict.items()):
-            ax[0].bar(index + i*bar_width, std_train, bar_width, label=name)
-            ax[1].bar(index + i*bar_width, std_test, bar_width, label=name)
-        ax[0].set_title("Std Deviasi Metrik (Train Fold - CV)")
-        ax[1].set_title("Std Deviasi Metrik (Valid/Test Fold - CV)")
-        for a in ax:
-            a.set_xticks(index + 1.5*bar_width)
-            a.set_xticklabels(metric_names, rotation=0)
-            a.legend()
-            a.set_ylim(0, None)
-            a.grid(axis='y', linestyle='--', alpha=0.6)
-            a.set_ylabel("Std Deviasi")
-        st.pyplot(fig)
-
-        st.write("**Tabel margin error (std) train & valid**")
-        data = []
-        rows = []
-        for name, (std_tr, std_te) in result_dict.items():
-            rows.append(f"{name} (Train)")
-            data.append(std_tr)
-            rows.append(f"{name} (Validasi)")
-            data.append(std_te)
-        st.dataframe(pd.DataFrame(data, index=rows, columns=metric_names).round(4))
-
-    st.success("Selesai! Silakan eksplor semua tab dan visualisasi interaktif.")
 
 if __name__ == "__main__":
     main()
